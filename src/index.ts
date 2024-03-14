@@ -11,11 +11,13 @@ async function run(): Promise<void> {
     core.debug(`coverageFile: ${coverageFile}`)
 
     const eventName = context.eventName
-    if (eventName !== 'pull_request') {
+    let {pull_request} = context.payload
+    if (eventName !== 'workflow_run' && context.payload.workflow_run.event === 'pull_request') {
+      pull_request = context.payload.workflow_run.pull_requests[0]
+    } else if (eventName !== 'pull_request') {
       core.setFailed(`action support only pull requests but event is ${eventName}`)
       return
     }
-    const {pull_request} = context.payload
     const base = pull_request?.base.sha
     const head = pull_request?.head.sha
 
