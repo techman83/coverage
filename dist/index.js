@@ -304,7 +304,6 @@ function run() {
         try {
             const coverageFile = core.getInput('coverageFile', { required: true });
             core.debug(`coverageFile: ${coverageFile}`);
-            core.debug(`payload: ${JSON.stringify(github_1.context.payload)}`);
             const eventName = github_1.context.eventName;
             let base = '';
             let head = '';
@@ -316,7 +315,6 @@ function run() {
                 issue_number = github_1.context.issue.number;
             }
             else if (eventName === 'workflow_run' && github_1.context.payload.workflow_run.event === 'pull_request') {
-                core.debug(`workflow_run: ${JSON.stringify(github_1.context.payload.workflow_run)}`);
                 const pull_request = github_1.context.payload.workflow_run.pull_requests[0];
                 base = pull_request.base.sha;
                 head = pull_request.head.sha;

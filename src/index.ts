@@ -9,7 +9,6 @@ async function run(): Promise<void> {
   try {
     const coverageFile: string = core.getInput('coverageFile', {required: true})
     core.debug(`coverageFile: ${coverageFile}`)
-    core.debug(`payload: ${JSON.stringify(context.payload)}`)
 
     const eventName = context.eventName
     let base: string = ''
@@ -21,7 +20,6 @@ async function run(): Promise<void> {
       head = pull_request?.head.sha
       issue_number = context.issue.number
     } else if (eventName === 'workflow_run' && context.payload.workflow_run.event === 'pull_request') {
-      core.debug(`workflow_run: ${JSON.stringify(context.payload.workflow_run)}`)
       const pull_request = context.payload.workflow_run.pull_requests[0]
       base = pull_request.base.sha
       head = pull_request.head.sha
