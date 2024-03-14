@@ -304,23 +304,34 @@ function run() {
         try {
             const coverageFile = core.getInput('coverageFile', { required: true });
             core.debug(`coverageFile: ${coverageFile}`);
+            core.debug(`payload: ${JSON.stringify(github_1.context.payload)}`);
             const eventName = github_1.context.eventName;
-            let { pull_request } = github_1.context.payload;
-            if (eventName !== 'workflow_run' && github_1.context.payload.workflow_run.event === 'pull_request') {
-                pull_request = github_1.context.payload.workflow_run.pull_requests[0];
+            let base = '';
+            let head = '';
+            let issue_number = 0;
+            if (eventName === 'pull_request') {
+                const { pull_request } = github_1.context.payload;
+                base = pull_request === null || pull_request === void 0 ? void 0 : pull_request.base.sha;
+                head = pull_request === null || pull_request === void 0 ? void 0 : pull_request.head.sha;
+                issue_number = github_1.context.issue.number;
             }
-            else if (eventName !== 'pull_request') {
-                core.setFailed(`action support only pull requests but event is ${eventName}`);
+            else if (eventName === 'workflow_run' && github_1.context.payload.workflow_run.event === 'pull_request') {
+                core.debug(`workflow_run: ${JSON.stringify(github_1.context.payload.workflow_run)}`);
+                const pull_request = github_1.context.payload.workflow_run.pull_requests[0];
+                base = pull_request.base.sha;
+                head = pull_request.head.sha;
+                issue_number = pull_request.number;
+            }
+            else {
+                core.setFailed(`action support only pull requests or workflow runs triggered by pull requests`);
                 return;
             }
-            const base = pull_request === null || pull_request === void 0 ? void 0 : pull_request.base.sha;
-            const head = pull_request === null || pull_request === void 0 ? void 0 : pull_request.head.sha;
             core.info(`comparing commits: base ${base} <> head ${head}`);
             const files = yield (0, compareCommits_1.compareCommits)(base, head);
             core.info(`git new files: ${JSON.stringify(files.newFiles)} modified files: ${JSON.stringify(files.modifiedFiles)}`);
             const report = (0, readFile_1.default)(coverageFile);
             const filesCoverage = (0, coverage_1.parseCoverageReport)(report, files);
-            const passOverall = (0, scorePr_1.scorePr)(filesCoverage);
+            const passOverall = (0, scorePr_1.scorePr)(filesCoverage, issue_number);
             if (!passOverall) {
                 core.setFailed('Coverage is lower than configured threshold 😭');
             }
@@ -441,7 +452,7 @@ function publishMessage(pr, message) {
     });
 }
 exports.publishMessage = publishMessage;
-function scorePr(filesCover) {
+function scorePr(filesCover, issue_number) {
     var _a, _b, _c;
     let message = '';
     let passOverall = true;
@@ -475,7 +486,7 @@ function scorePr(filesCover) {
     const action = '[action](https://github.com/marketplace/actions/python-coverage)';
     message = message.concat(`\n\n\n> **updated for commit: \`${sha}\` by ${action}🐍**`);
     message = `\n> current status: ${passOverall ? '✅' : '❌'}`.concat(message);
-    publishMessage(github_1.context.issue.number, message);
+    publishMessage(issue_number, message);
     core.endGroup();
     return passOverall;
 }
