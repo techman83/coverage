@@ -121,9 +121,12 @@ function parseCoverageReport(report, files) {
     return { averageCover: avgCover, newCover, modifiedCover };
 }
 exports.parseCoverageReport = parseCoverageReport;
+function escapeRegExp(value) {
+    return value.replace(/[.*+\-?^${}()|[\]\\]/g, '\\$&');
+}
 function parseFilesCoverage(report, source, files, threshold) {
     const coverages = files === null || files === void 0 ? void 0 : files.map(file => {
-        const fileName = file.replace(`${source}/`, '').replace(/\//g, '\\/');
+        const fileName = escapeRegExp(file.replace(`${source}/`, ''));
         const regex = new RegExp(`.*filename="${fileName}".*line-rate="(?<cover>[0-9]+[.]*[0-9]*)".*`);
         const match = report.match(regex);
         const cover = (match === null || match === void 0 ? void 0 : match.groups) ? parseFloat(match.groups['cover']) : -1;
@@ -228,7 +231,8 @@ function formatFilesTable(cover) {
         ...cover.map(coverFile => {
             const coverPrecent = `${(coverFile.cover * 100).toFixed()}%`;
             const indicator = passOrFailIndicator(coverFile.pass);
-            return [coverFile.file, coverPrecent, indicator];
+            const formatedFile = coverFile.file.replace("_", "\\_");
+            return [formatedFile, coverPrecent, indicator];
         }),
         ['**TOTAL**', avgCover, averageIndicator]
     ], { align: ['l', 'c', 'c'] });
@@ -301,11 +305,14 @@ function run() {
             const coverageFile = core.getInput('coverageFile', { required: true });
             core.debug(`coverageFile: ${coverageFile}`);
             const eventName = github_1.context.eventName;
-            if (eventName !== 'pull_request') {
+            let { pull_request } = github_1.context.payload;
+            if (eventName !== 'workflow_run' && github_1.context.payload.workflow_run.event === 'pull_request') {
+                pull_request = github_1.context.payload.workflow_run.pull_requests[0];
+            }
+            else if (eventName !== 'pull_request') {
                 core.setFailed(`action support only pull requests but event is ${eventName}`);
                 return;
             }
-            const { pull_request } = github_1.context.payload;
             const base = pull_request === null || pull_request === void 0 ? void 0 : pull_request.base.sha;
             const head = pull_request === null || pull_request === void 0 ? void 0 : pull_request.head.sha;
             core.info(`comparing commits: base ${base} <> head ${head}`);
@@ -315,7 +322,7 @@ function run() {
             const filesCoverage = (0, coverage_1.parseCoverageReport)(report, files);
             const passOverall = (0, scorePr_1.scorePr)(filesCoverage);
             if (!passOverall) {
-                core.setFailed('Coverage is lower then configured threshold 😭');
+                core.setFailed('Coverage is lower than configured threshold 😭');
             }
         }
         catch (error) {
@@ -10673,7 +10680,7 @@ __nccwpck_require__.r(__webpack_exports__);
 /**
  * @typedef Options
  *   Configuration (optional).
- * @property {string|null|Array<string|null|undefined>} [align]
+ * @property {string|null|ReadonlyArray<string|null|undefined>} [align]
  *   One style for all columns, or styles for their respective columns.
  *   Each style is either `'l'` (left), `'r'` (right), or `'c'` (center).
  *   Other values are treated as `''`, which doesn’t place the colon in the
@@ -10818,7 +10825,7 @@ __nccwpck_require__.r(__webpack_exports__);
 /**
  * Generate a markdown ([GFM](https://docs.github.com/en/github/writing-on-github/working-with-advanced-formatting/organizing-information-with-tables)) table..
  *
- * @param {Array<Array<string|null|undefined>>} table
+ * @param {ReadonlyArray<ReadonlyArray<string|null|undefined>>} table
  *   Table data (matrix of strings).
  * @param {Options} [options]
  *   Configuration (optional).
