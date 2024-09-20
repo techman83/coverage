@@ -305,6 +305,7 @@ function run() {
             const coverageFile = core.getInput('coverageFile', { required: true });
             core.debug(`coverageFile: ${coverageFile}`);
             const eventName = github_1.context.eventName;
+            core.info(`${eventName}: ${JSON.stringify(github_1.context.payload)}`);
             let base;
             let head;
             let issue_number;

@@ -11,6 +11,7 @@ async function run(): Promise<void> {
     core.debug(`coverageFile: ${coverageFile}`)
 
     const eventName = context.eventName
+    core.info(`${eventName}: ${JSON.stringify(context.payload)}`)
     let base: string
     let head: string
     let issue_number: number
